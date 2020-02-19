@@ -2,11 +2,10 @@ import React from 'react'
 import DeckGL from '@deck.gl/react'
 import { LineLayer } from '@deck.gl/layers'
 import { StaticMap } from 'react-map-gl'
+import { MAPBOX_ACCESS_TOKEN } from './secret'
 import './App.css'
 
 function App() {
-  const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1Ijoid2FuZ2ppZWtlIiwiYSI6ImNrNnNrcXI1NTA0ZDkzbXJ4bTZoaTh5N3EifQ.Cd1z1vGhBr1Vq5LPIfpNVA'
-
   const initialViewState = {
     longitude: -122.41669,
     latitude: 37.7853,
