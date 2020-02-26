@@ -6,6 +6,17 @@ import { MAPBOX_ACCESS_TOKEN } from './secret'
 import './App.css'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
+function bytesToCoordinatesArray(buffer) {
+  const dataView = new DataView(buffer)
+  const doubleByteLen = 8
+  let arr = []
+  for (let i = 0; i < dataView.byteLength; i += doubleByteLen) {
+    arr.push([dataView.getFloat64(i), dataView.getFloat64(i += doubleByteLen)])
+  }
+  console.log(arr)
+  return arr
+}
+
 function App() {
   const initialViewState = {
     longitude: -122.123801,
@@ -51,12 +62,14 @@ function App() {
           onChange={e => setDataPointsCount(Number(e.target.value))}
         />
         <button id="get-data-button" onClick={
-          e => fetch(`http://localhost:9000/dataPoints?count=${dataPointsCount}`).then(
-            response => response.json(), reason => alert(reason)
-          ).then(data => setData(data['latlons']), reason => alert(reason))
+          e => fetch(`http://localhost:9000/dataPoints?count=${dataPointsCount}`)
+            .then(response => response.json())
+            .then(data => {console.log(data);setData(data['latlons'])})
         }>Get Data Points</button>
         <button id="get-data-button" onClick={
-          e => fetch("http://localhost:9000")
+          e => fetch(`http://localhost:9000/binDataPoints?count=${dataPointsCount}`)
+            .then(response => response.arrayBuffer())
+            .then(buffer => setData(bytesToCoordinatesArray(buffer)))
         }>Get Data Points in Binary</button>
       </div>
       <div id="my-deckgl-map">
