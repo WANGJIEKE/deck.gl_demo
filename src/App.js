@@ -23,13 +23,10 @@ function websocketTransfer(count, setData) {
     const view = new DataView(buffer)
     view.setInt32(0, count, false)  // big-endian
     socket.send(buffer)
-    const startTime = Date.now()
     socket.onmessage = e => {
       e.data.arrayBuffer().then(buffer => {
         socket.close()
-        const endTime = Date.now()
         setData(bytesToCoordinatesArray(buffer))
-        console.log(`WebSocket time used: ${endTime - startTime} ms`)
       })
     }
   }
