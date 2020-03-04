@@ -13,8 +13,26 @@ function bytesToCoordinatesArray(buffer) {
   for (let i = 0; i < dataView.byteLength; i += doubleByteLen) {
     arr.push([dataView.getFloat64(i), dataView.getFloat64(i += doubleByteLen)])
   }
-  console.log(arr)
   return arr
+}
+
+function websocketTransfer(count, setData) {
+  const socket = new WebSocket('ws://localhost:9000/ws')
+  socket.onopen = e => {
+    const buffer = new ArrayBuffer(4)  // Java int is 4 bytes
+    const view = new DataView(buffer)
+    view.setInt32(0, count, false)  // big-endian
+    socket.send(buffer)
+    const startTime = Date.now()
+    socket.onmessage = e => {
+      e.data.arrayBuffer().then(buffer => {
+        socket.close()
+        const endTime = Date.now()
+        setData(bytesToCoordinatesArray(buffer))
+        console.log(`WebSocket time used: ${endTime - startTime} ms`)
+      })
+    }
+  }
 }
 
 function App() {
@@ -61,16 +79,20 @@ function App() {
           value={dataPointsCount}
           onChange={e => setDataPointsCount(Number(e.target.value))}
         />
-        <button id="get-data-button" onClick={
+        <button onClick={
           e => fetch(`http://localhost:9000/dataPoints?count=${dataPointsCount}`)
             .then(response => response.json())
-            .then(data => {console.log(data);setData(data['latlons'])})
+            .then(data => setData(data['latlons']))
         }>Get Data Points</button>
-        <button id="get-data-button" onClick={
+        <button onClick={
           e => fetch(`http://localhost:9000/binDataPoints?count=${dataPointsCount}`)
             .then(response => response.arrayBuffer())
             .then(buffer => setData(bytesToCoordinatesArray(buffer)))
         }>Get Data Points in Binary</button>
+        <button onClick={
+          e => websocketTransfer(dataPointsCount, setData)
+        }>Get Data via WebSocket</button>
+        <button onClick={e => setData([])}>Clear Data Points</button>
       </div>
       <div id="my-deckgl-map">
         <DeckGL
