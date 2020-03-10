@@ -16,7 +16,7 @@ function bytesToCoordinatesArray(buffer) {
   return arr
 }
 
-function websocketTransfer(count, setData) {
+function websocketTransfer(count, setData, shouldRenderData) {
   const socket = new WebSocket('ws://localhost:9000/ws')
   socket.onopen = e => {
     const buffer = new ArrayBuffer(4)  // Java int is 4 bytes
@@ -26,7 +26,9 @@ function websocketTransfer(count, setData) {
     socket.onmessage = e => {
       e.data.arrayBuffer().then(buffer => {
         socket.close()
-        setData(bytesToCoordinatesArray(buffer))
+        if (shouldRenderData) {
+          setData(bytesToCoordinatesArray(buffer))
+        }
       })
     }
   }
@@ -45,8 +47,9 @@ function App() {
     [-122.123801, 37.893394],
     [-122.271604, 37.803664]
   ])
-
   const [dataPointsCount, setDataPointsCount] = useState(10)
+  const [shouldRenderData, setShouldRenderData] = useState(false)
+
   const scatterplotLayerFactory = data => new ScatterplotLayer({
     id: 'sample-scatter-plot-layer',
     data: data.map(coord_pair => { return { coordinates: coord_pair } }),
@@ -68,7 +71,7 @@ function App() {
   return (
     <div className="App">
       <div id="data-point-control">
-        <label># data request: </label>
+        <label>Number of data points to request: </label>
         <input
           type="number"
           id="num-data-request"
@@ -76,20 +79,37 @@ function App() {
           value={dataPointsCount}
           onChange={e => setDataPointsCount(Number(e.target.value))}
         />
+
         <button onClick={
-          e => fetch(`http://localhost:9000/dataPoints?count=${dataPointsCount}`)
-            .then(response => response.json())
-            .then(data => setData(data['latlons']))
-        }>Get Data Points</button>
+          async e => {
+            const data = await (await fetch(`http://localhost:9000/dataPoints?count=${dataPointsCount}`)).json()
+            if (shouldRenderData) {
+              setData(data['latlons'])
+            }
+          }
+        } disabled={true}>Get Data Points</button>
+
         <button onClick={
-          e => fetch(`http://localhost:9000/binDataPoints?count=${dataPointsCount}`)
-            .then(response => response.arrayBuffer())
-            .then(buffer => setData(bytesToCoordinatesArray(buffer)))
+          async e => {
+            const buffer = await (await fetch(`http://localhost:9000/binDataPoints?count=${dataPointsCount}`)).arrayBuffer()
+            if (shouldRenderData) {
+              setData(bytesToCoordinatesArray(buffer))
+            }
+          }
         }>Get Data Points in Binary</button>
+
         <button onClick={
-          e => websocketTransfer(dataPointsCount, setData)
-        }>Get Data via WebSocket</button>
+          e => websocketTransfer(dataPointsCount, setData, shouldRenderData)
+        } disabled={true}>Get Data via WebSocket</button>
+
         <button onClick={e => setData([])}>Clear Data Points</button>
+        
+        <input
+          type="checkbox"
+          checked={shouldRenderData}
+          onChange={e => setShouldRenderData(!shouldRenderData)}
+        />
+        <label>Render data</label>
       </div>
       <div id="my-deckgl-map">
         <DeckGL
