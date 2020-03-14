@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import DeckGL from '@deck.gl/react'
 import { ScatterplotLayer } from '@deck.gl/layers'
 import { StaticMap } from 'react-map-gl'
-import { MAPBOX_ACCESS_TOKEN } from './secret'
+import { HOST, MAPBOX_ACCESS_TOKEN } from './config.js'
 import './App.css'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
@@ -17,7 +17,7 @@ function bytesToCoordinatesArray(buffer) {
 }
 
 function websocketTransfer(count, setData, shouldRenderData) {
-  const socket = new WebSocket('ws://localhost:9000/ws')
+  const socket = new WebSocket(`ws://${HOST}:9000/ws`)
   socket.onopen = e => {
     const buffer = new ArrayBuffer(4)  // Java int is 4 bytes
     const view = new DataView(buffer)
@@ -82,7 +82,7 @@ function App() {
 
         <button onClick={
           async e => {
-            const data = await (await fetch(`http://localhost:9000/dataPoints?count=${dataPointsCount}`)).json()
+            const data = await (await fetch(`http://${HOST}/dataPoints?count=${dataPointsCount}`)).json()
             if (shouldRenderData) {
               setData(data['latlons'])
             }
@@ -91,7 +91,7 @@ function App() {
 
         <button onClick={
           async e => {
-            const buffer = await (await fetch(`http://localhost:9000/binDataPoints?count=${dataPointsCount}`)).arrayBuffer()
+            const buffer = await (await fetch(`http://${HOST}:9000/binDataPoints?count=${dataPointsCount}`)).arrayBuffer()
             if (shouldRenderData) {
               setData(bytesToCoordinatesArray(buffer))
             }
