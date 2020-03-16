@@ -2,37 +2,10 @@ import React, { useState } from 'react'
 import DeckGL from '@deck.gl/react'
 import { ScatterplotLayer } from '@deck.gl/layers'
 import { StaticMap } from 'react-map-gl'
-import { HOST, MAPBOX_ACCESS_TOKEN } from './config.js'
+import { MAPBOX_ACCESS_TOKEN } from './config'
+import { websocketTransfer, JSONTransfer, binTransfer } from './connection'
 import './App.css'
 import 'mapbox-gl/dist/mapbox-gl.css'
-
-function bytesToCoordinatesArray(buffer) {
-  const dataView = new DataView(buffer)
-  const doubleByteLen = 8
-  let arr = []
-  for (let i = 0; i < dataView.byteLength; i += doubleByteLen) {
-    arr.push([dataView.getFloat64(i), dataView.getFloat64(i += doubleByteLen)])
-  }
-  return arr
-}
-
-function websocketTransfer(count, setData, shouldRenderData) {
-  const socket = new WebSocket(`ws://${HOST}:9000/ws`)
-  socket.onopen = e => {
-    const buffer = new ArrayBuffer(4)  // Java int is 4 bytes
-    const view = new DataView(buffer)
-    view.setInt32(0, count, false)  // big-endian
-    socket.send(buffer)
-    socket.onmessage = e => {
-      e.data.arrayBuffer().then(buffer => {
-        socket.close()
-        if (shouldRenderData) {
-          setData(bytesToCoordinatesArray(buffer))
-        }
-      })
-    }
-  }
-}
 
 function App() {
   const initialViewState = {
@@ -44,8 +17,7 @@ function App() {
   }
 
   const [data, setData] = useState([
-    [-122.123801, 37.893394],
-    [-122.271604, 37.803664]
+    [-122.123801, 37.893394]
   ])
   const [dataPointsCount, setDataPointsCount] = useState(10)
   const [shouldRenderData, setShouldRenderData] = useState(false)
@@ -81,21 +53,11 @@ function App() {
         />
 
         <button onClick={
-          async e => {
-            const data = await (await fetch(`http://${HOST}/dataPoints?count=${dataPointsCount}`)).json()
-            if (shouldRenderData) {
-              setData(data['latlons'])
-            }
-          }
+          async e => await JSONTransfer(dataPointsCount, setData, shouldRenderData)
         } disabled={true}>Get Data Points</button>
 
         <button onClick={
-          async e => {
-            const buffer = await (await fetch(`http://${HOST}:9000/binDataPoints?count=${dataPointsCount}`)).arrayBuffer()
-            if (shouldRenderData) {
-              setData(bytesToCoordinatesArray(buffer))
-            }
-          }
+          async e => await binTransfer(dataPointsCount, setData, shouldRenderData)
         }>Get Data Points in Binary</button>
 
         <button onClick={
